@@ -1,6 +1,6 @@
-version: "3.8"
-
 services:
+
+  # ---- MySQL ----
   mysql:
     image: mysql:8.0
     restart: unless-stopped
@@ -9,18 +9,21 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "mysqladmin ping -h localhost -uroot -p${MYSQL_ROOT_PASSWORD} || exit 1",
-        ]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
-  app:
-    build: .
+  # ---- Backend (Spring Boot) ----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "8080:8080"
     depends_on:
@@ -31,9 +34,21 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    env_file:
-      - .env
 
+  # ---- Frontend (Next.js) ----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  # ---- phpMyAdmin ----
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     restart: unless-stopped
@@ -45,3 +60,6 @@ services:
       PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     depends_on:
       - mysql
+
+volumes:
+  mysql_data:
