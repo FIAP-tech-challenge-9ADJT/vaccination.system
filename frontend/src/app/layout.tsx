@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vaccination System - Sistema Nacional de Vacinação",
+  title: "Sistema Nacional de Vacinação",
   description: "Sistema de gerenciamento de vacinação com histórico de vacinas do paciente",
 };
 
