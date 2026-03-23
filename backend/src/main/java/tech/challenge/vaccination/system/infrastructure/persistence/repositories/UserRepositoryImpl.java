@@ -1,5 +1,7 @@
 package tech.challenge.vaccination.system.infrastructure.persistence.repositories;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import tech.challenge.vaccination.system.domain.entities.User;
@@ -9,6 +11,7 @@ import tech.challenge.vaccination.system.domain.valueobjects.Login;
 import tech.challenge.vaccination.system.domain.valueobjects.UserId;
 import tech.challenge.vaccination.system.infrastructure.persistence.mappers.UserJpaMapper;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -26,6 +29,19 @@ public class UserRepositoryImpl implements UserRepository {
             .map(UserJpaMapper::toDomainEntity);
     }
     
+    @Override
+    public List<User> findAll(int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        return userJpaRepository.findAll(pageable).getContent().stream()
+            .map(UserJpaMapper::toDomainEntity)
+            .toList();
+    }
+
+    @Override
+    public long count() {
+        return userJpaRepository.count();
+    }
+
     @Override
     public Optional<User> findByLogin(Login login) {
         return userJpaRepository.findByLogin(login.value())

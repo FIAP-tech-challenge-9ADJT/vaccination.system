@@ -10,6 +10,7 @@ import tech.challenge.vaccination.system.domain.repositories.UserRepository;
 import tech.challenge.vaccination.system.domain.usecases.auth.AuthenticateUserUseCase;
 import tech.challenge.vaccination.system.domain.usecases.auth.ChangePasswordUseCase;
 import tech.challenge.vaccination.system.domain.usecases.user.FindUserUseCase;
+import tech.challenge.vaccination.system.domain.usecases.user.ListUsersUseCase;
 import tech.challenge.vaccination.system.domain.usecases.user.UpdateUserUseCase;
 
 @Configuration
@@ -26,6 +27,11 @@ public class UseCaseConfig {
     @Bean
     public FindUserUseCase findUserUseCase(UserRepository userRepository) {
         return new FindUserUseCase(userRepository);
+    }
+
+    @Bean
+    public ListUsersUseCase listUsersUseCase(UserRepository userRepository) {
+        return new ListUsersUseCase(userRepository);
     }
     
     @Bean
