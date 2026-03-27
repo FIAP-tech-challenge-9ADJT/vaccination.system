@@ -6,7 +6,11 @@ public class Role {
 
     public enum RoleName {
         USER,
-        ADMIN
+        ADMIN,
+        PACIENTE,
+        ENFERMEIRO,
+        MEDICO,
+        EMPRESA
     }
 
     private final Long id;

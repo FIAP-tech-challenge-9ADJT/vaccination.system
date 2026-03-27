@@ -10,6 +10,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import tech.challenge.vaccination.system.domain.exceptions.AccessDeniedException;
 import tech.challenge.vaccination.system.domain.exceptions.UserNotFoundException;
+import tech.challenge.vaccination.system.exceptions.BusinessRuleException;
 import tech.challenge.vaccination.system.exceptions.DataConflictException;
 import tech.challenge.vaccination.system.exceptions.ResourceNotFoundException;
 import tech.challenge.vaccination.system.presentation.dtos.error.ErrorResponseDTO;
@@ -65,6 +66,18 @@ public class DataExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
     
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ErrorResponseDTO> handleBusinessRule(
+            BusinessRuleException ex, HttpServletRequest request) {
+        ErrorResponseDTO error = ErrorResponseDTO.of(
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                "Business Rule Violation",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    }
+
     @ExceptionHandler(DataConflictException.class)
     public ResponseEntity<ErrorResponseDTO> handleDataConflict(
             DataConflictException ex, HttpServletRequest request) {

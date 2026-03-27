@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore, getDefaultRoute } from "@/stores/auth-store";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
 
 export default function LoginPage() {
@@ -33,7 +33,8 @@ export default function LoginPage() {
     try {
       await login(data.login, data.password);
       toast.success("Login realizado com sucesso!");
-      router.push("/dashboard");
+      const user = useAuthStore.getState().user;
+      router.push(getDefaultRoute(user));
     } catch {
       toast.error("Credenciais inválidas. Verifique seu login e senha.");
     } finally {
