@@ -1,62 +1,87 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Users,
   Syringe,
   ShieldCheck,
-  CalendarCheck,
-  TrendingUp,
+  Megaphone,
   Activity,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const stats = [
-  {
-    title: "Pacientes Cadastrados",
-    value: "12.847",
-    change: "+8,2%",
-    icon: Users,
-    color: "bg-gov-blue",
-  },
-  {
-    title: "Vacinas Aplicadas",
-    value: "34.521",
-    change: "+12,5%",
-    icon: Syringe,
-    color: "bg-gov-green",
-  },
-  {
-    title: "Cobertura Vacinal",
-    value: "87,3%",
-    change: "+3,1%",
-    icon: ShieldCheck,
-    color: "bg-gov-blue-dark",
-  },
-  {
-    title: "Agendamentos Hoje",
-    value: "248",
-    change: "+15,8%",
-    icon: CalendarCheck,
-    color: "bg-[#C2850C]",
-  },
-];
-
-const recentVaccinations = [
-  { patient: "Maria Silva", vaccine: "COVID-19 - Bivalente", date: "23/03/2026", status: "Aplicada" },
-  { patient: "João Santos", vaccine: "Influenza 2026", date: "23/03/2026", status: "Aplicada" },
-  { patient: "Ana Oliveira", vaccine: "Hepatite B - 2ª dose", date: "23/03/2026", status: "Agendada" },
-  { patient: "Pedro Costa", vaccine: "Tétano - Reforço", date: "22/03/2026", status: "Aplicada" },
-  { patient: "Lucia Fernandes", vaccine: "Febre Amarela", date: "22/03/2026", status: "Aplicada" },
-];
-
-const campaigns = [
-  { name: "Campanha Nacional de Vacinação contra Influenza", progress: 72, target: "50.000 doses" },
-  { name: "Campanha de Multivacinação Infantil", progress: 58, target: "25.000 crianças" },
-  { name: "COVID-19 - Dose de Reforço 2026", progress: 45, target: "80.000 doses" },
-];
+import { useAuthStore } from "@/stores/auth-store";
+import {
+  api,
+  type DashboardStats,
+  type VaccinationRecordResponse,
+  type CampaignResponse,
+} from "@/lib/api";
 
 export default function DashboardPage() {
+  const { token } = useAuthStore();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentVaccinations, setRecentVaccinations] = useState<VaccinationRecordResponse[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) return;
+    setLoading(true);
+    Promise.all([
+      api.dashboard.stats(token),
+      api.dashboard.recentVaccinations(token),
+      api.dashboard.activeCampaigns(token),
+    ])
+      .then(([s, r, c]) => {
+        setStats(s);
+        setRecentVaccinations(r);
+        setCampaigns(c);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-gov-blue" />
+      </div>
+    );
+  }
+
+  const statCards = [
+    {
+      title: "Pacientes Vacinados",
+      value: stats?.totalPatients?.toLocaleString("pt-BR") ?? "0",
+      icon: Users,
+      color: "bg-gov-blue",
+    },
+    {
+      title: "Vacinas Aplicadas",
+      value: stats?.totalVaccinations?.toLocaleString("pt-BR") ?? "0",
+      icon: Syringe,
+      color: "bg-gov-green",
+    },
+    {
+      title: "Vacinas Cadastradas",
+      value: stats?.totalVaccines?.toLocaleString("pt-BR") ?? "0",
+      icon: ShieldCheck,
+      color: "bg-gov-blue-dark",
+    },
+    {
+      title: "Campanhas Ativas",
+      value: stats?.activeCampaigns?.toString() ?? "0",
+      icon: Megaphone,
+      color: "bg-[#C2850C]",
+    },
+  ];
+
+  function formatDate(d: string) {
+    return new Date(d + "T00:00:00").toLocaleDateString("pt-BR");
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -68,7 +93,7 @@ export default function DashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {statCards.map((stat) => (
           <Card key={stat.title} className="shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -79,11 +104,6 @@ export default function DashboardPage() {
                 <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${stat.color}`}>
                   <stat.icon className="h-6 w-6 text-white" />
                 </div>
-              </div>
-              <div className="mt-2 flex items-center gap-1 text-sm">
-                <TrendingUp className="h-3 w-3 text-gov-green" />
-                <span className="font-medium text-gov-green">{stat.change}</span>
-                <span className="text-muted-foreground">vs. mês anterior</span>
               </div>
             </CardContent>
           </Card>
@@ -101,32 +121,36 @@ export default function DashboardPage() {
             <CardDescription>Últimas vacinações registradas no sistema</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {recentVaccinations.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-medium">{item.patient}</p>
-                    <p className="text-xs text-muted-foreground">{item.vaccine}</p>
+            {recentVaccinations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                <Syringe className="mb-3 h-10 w-10 opacity-30" />
+                <p className="text-sm">Nenhuma vacinação registrada ainda.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentVaccinations.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">{item.patientName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.vaccineName} — {item.doseNumber}ª dose
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(item.applicationDate)}
+                      </span>
+                      <Badge className="bg-gov-green hover:bg-gov-green/90">
+                        Aplicada
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">{item.date}</span>
-                    <Badge
-                      variant={item.status === "Aplicada" ? "default" : "secondary"}
-                      className={
-                        item.status === "Aplicada"
-                          ? "bg-gov-green hover:bg-gov-green/90"
-                          : ""
-                      }
-                    >
-                      {item.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -140,23 +164,35 @@ export default function DashboardPage() {
             <CardDescription>Progresso das campanhas de vacinação ativas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-5">
-              {campaigns.map((campaign, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{campaign.name}</p>
-                    <span className="text-sm font-bold text-gov-blue">{campaign.progress}%</span>
+            {campaigns.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                <ShieldCheck className="mb-3 h-10 w-10 opacity-30" />
+                <p className="text-sm">Nenhuma campanha ativa no momento.</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {campaigns.map((campaign) => (
+                  <div key={campaign.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{campaign.name}</p>
+                      <span className="text-sm font-bold text-gov-blue">
+                        {campaign.progressPercentage}%
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-muted">
+                      <div
+                        className="h-2.5 rounded-full bg-gov-blue transition-all"
+                        style={{ width: `${campaign.progressPercentage}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Meta: {campaign.doseGoal.toLocaleString("pt-BR")} doses |{" "}
+                      {campaign.appliedDoses.toLocaleString("pt-BR")} aplicadas
+                    </p>
                   </div>
-                  <div className="h-2.5 w-full rounded-full bg-muted">
-                    <div
-                      className="h-2.5 rounded-full bg-gov-blue transition-all"
-                      style={{ width: `${campaign.progress}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">Meta: {campaign.target}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

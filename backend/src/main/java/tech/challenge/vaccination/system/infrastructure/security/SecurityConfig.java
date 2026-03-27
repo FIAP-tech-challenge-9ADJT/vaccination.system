@@ -7,6 +7,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final AccessTokenFilter accessTokenFilter;
@@ -46,13 +48,50 @@ public class SecurityConfig {
                 // CRIAÇÃO DE USUÁRIOS (público)
                 req.requestMatchers(HttpMethod.POST, "/users").permitAll();
 
+                // QR Code validation (público)
+                req.requestMatchers(HttpMethod.GET, "/patients/*/vaccination-card/validate").permitAll();
+
                 // AUTH - atualizar perfil (requer autenticação)
-                req.requestMatchers(HttpMethod.POST, "/auth/update-profile").hasAnyRole("USER", "ADMIN");
+                req.requestMatchers(HttpMethod.POST, "/auth/update-profile").hasAnyRole("USER", "ADMIN", "PACIENTE", "ENFERMEIRO", "MEDICO", "EMPRESA");
 
                 // USERS
-                req.requestMatchers(HttpMethod.GET, "/users/me").hasAnyRole("USER", "ADMIN");
+                req.requestMatchers(HttpMethod.GET, "/users/me").hasAnyRole("USER", "ADMIN", "PACIENTE", "ENFERMEIRO", "MEDICO", "EMPRESA");
                 req.requestMatchers(HttpMethod.GET, "/users/**").hasRole("ADMIN");
                 req.requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN");
+
+                // VACCINES - leitura para todos autenticados, escrita para ADMIN
+                req.requestMatchers(HttpMethod.GET, "/vaccines/**").authenticated();
+                req.requestMatchers(HttpMethod.POST, "/vaccines").hasRole("ADMIN");
+                req.requestMatchers(HttpMethod.PUT, "/vaccines/**").hasRole("ADMIN");
+                req.requestMatchers(HttpMethod.DELETE, "/vaccines/**").hasRole("ADMIN");
+
+                // HEALTH UNITS - leitura para todos autenticados, escrita para ADMIN
+                req.requestMatchers(HttpMethod.GET, "/health-units/**").authenticated();
+                req.requestMatchers(HttpMethod.POST, "/health-units").hasRole("ADMIN");
+                req.requestMatchers(HttpMethod.PUT, "/health-units/**").hasRole("ADMIN");
+                req.requestMatchers(HttpMethod.DELETE, "/health-units/**").hasRole("ADMIN");
+
+                // VACCINATION RECORDS - registro para ENFERMEIRO/MEDICO, edição só MEDICO
+                req.requestMatchers(HttpMethod.POST, "/vaccinations").hasAnyRole("ENFERMEIRO", "MEDICO");
+                req.requestMatchers(HttpMethod.PUT, "/vaccinations/**").hasRole("MEDICO");
+                req.requestMatchers(HttpMethod.GET, "/vaccinations/**").hasAnyRole("ADMIN", "ENFERMEIRO", "MEDICO");
+
+                // PATIENT - carteira de vacinação (USER tratado como PACIENTE para retrocompatibilidade)
+                req.requestMatchers("/patients/me/**").hasAnyRole("PACIENTE", "USER");
+                req.requestMatchers(HttpMethod.GET, "/patients/*/vaccination-card").hasAnyRole("ENFERMEIRO", "MEDICO", "ADMIN");
+                req.requestMatchers("/patients/*/consents/**").hasAnyRole("PACIENTE", "USER");
+
+                // COMPANY - consulta status vacinal
+                req.requestMatchers("/company/**").hasRole("EMPRESA");
+
+                // CAMPAIGNS - leitura para todos autenticados, escrita para ADMIN
+                req.requestMatchers(HttpMethod.GET, "/campaigns/**").authenticated();
+                req.requestMatchers(HttpMethod.POST, "/campaigns").hasRole("ADMIN");
+                req.requestMatchers(HttpMethod.PUT, "/campaigns/**").hasRole("ADMIN");
+                req.requestMatchers(HttpMethod.DELETE, "/campaigns/**").hasRole("ADMIN");
+
+                // DASHBOARD
+                req.requestMatchers("/dashboard/**").hasAnyRole("ADMIN", "ENFERMEIRO", "MEDICO");
 
                 // ADMIN
                 req.requestMatchers("/admin/**").hasRole("ADMIN");

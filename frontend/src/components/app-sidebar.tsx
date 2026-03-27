@@ -7,6 +7,12 @@ import {
   Users,
   Syringe,
   LogOut,
+  Building2,
+  ClipboardList,
+  Megaphone,
+  CreditCard,
+  Bell,
+  Building,
 } from "lucide-react";
 import {
   Sidebar,
@@ -22,14 +28,51 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/stores/auth-store";
 
-const menuItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Usuários", href: "/dashboard/usuarios", icon: Users },
-];
+function hasRole(user: { roles: { name: string }[] } | null, role: string): boolean {
+  return user?.roles?.some((r) => r.name === role) ?? false;
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+
+  const isAdmin = hasRole(user, "ADMIN");
+  const isPaciente = hasRole(user, "PACIENTE") || hasRole(user, "USER");
+  const isEnfermeiro = hasRole(user, "ENFERMEIRO");
+  const isMedico = hasRole(user, "MEDICO");
+  const isEmpresa = hasRole(user, "EMPRESA");
+  const isProfessional = isEnfermeiro || isMedico;
+
+  const menuItems = [];
+
+  // Dashboard - admin, enfermeiro, medico
+  if (isAdmin || isProfessional) {
+    menuItems.push({ title: "Dashboard", href: "/dashboard", icon: LayoutDashboard });
+  }
+
+  // Paciente menu
+  if (isPaciente) {
+    menuItems.push({ title: "Minha Carteira", href: "/dashboard/minha-carteira", icon: CreditCard });
+    menuItems.push({ title: "Alertas", href: "/dashboard/alertas", icon: Bell });
+  }
+
+  // Professional menu
+  if (isProfessional || isAdmin) {
+    menuItems.push({ title: "Vacinações", href: "/dashboard/vacinacoes", icon: ClipboardList });
+  }
+
+  // Admin menu
+  if (isAdmin) {
+    menuItems.push({ title: "Usuários", href: "/dashboard/usuarios", icon: Users });
+    menuItems.push({ title: "Vacinas", href: "/dashboard/vacinas", icon: Syringe });
+    menuItems.push({ title: "Unidades de Saúde", href: "/dashboard/unidades", icon: Building2 });
+    menuItems.push({ title: "Campanhas", href: "/dashboard/campanhas", icon: Megaphone });
+  }
+
+  // Company menu
+  if (isEmpresa) {
+    menuItems.push({ title: "Consultar Status", href: "/dashboard/consultar-status", icon: Building });
+  }
 
   return (
     <Sidebar>
@@ -72,6 +115,13 @@ export function AppSidebar() {
             <div className="flex flex-col text-sm">
               <span className="font-medium truncate">{user.name}</span>
               <span className="text-xs opacity-70 truncate">{user.email}</span>
+              <div className="flex gap-1 mt-1">
+                {user.roles.map((role) => (
+                  <span key={role.id} className="text-[10px] px-1.5 py-0.5 rounded bg-sidebar-accent">
+                    {role.name}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
           <SidebarMenu>

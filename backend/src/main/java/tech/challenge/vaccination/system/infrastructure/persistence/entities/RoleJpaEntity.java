@@ -12,7 +12,7 @@ public class RoleJpaEntity implements GrantedAuthority {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Enumerated(EnumType.STRING)
     private RoleName name;
 
@@ -21,7 +21,11 @@ public class RoleJpaEntity implements GrantedAuthority {
 
     public enum RoleName {
         USER,
-        ADMIN
+        ADMIN,
+        PACIENTE,
+        ENFERMEIRO,
+        MEDICO,
+        EMPRESA
     }
 
     @Override
@@ -29,27 +33,10 @@ public class RoleJpaEntity implements GrantedAuthority {
         return "ROLE_" + name;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public RoleName getName() {
-        return name;
-    }
-
-    public void setName(RoleName name) {
-        this.name = name;
-    }
-
-    public Set<UserJpaEntity> getUsers() {
-        return users;
-    }
-
-    public void setUsers(Set<UserJpaEntity> users) {
-        this.users = users;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public RoleName getName() { return name; }
+    public void setName(RoleName name) { this.name = name; }
+    public Set<UserJpaEntity> getUsers() { return users; }
+    public void setUsers(Set<UserJpaEntity> users) { this.users = users; }
 }

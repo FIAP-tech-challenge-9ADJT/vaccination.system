@@ -31,7 +31,7 @@ public class UserApplicationService {
     }
 
     public User createUser(String name, String email, String login, String password) {
-        return createUserUseCase.execute(name, email, login, password, Role.RoleName.USER);
+        return createUserUseCase.execute(name, email, login, password, Role.RoleName.PACIENTE);
     }
 
     public User findUser(UserId userId) {

@@ -46,3 +46,14 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+export function hasRole(user: UserResponse | null, role: string): boolean {
+  return user?.roles?.some((r) => r.name === role) ?? false;
+}
+
+export function getDefaultRoute(user: UserResponse | null): string {
+  if (!user) return "/login";
+  if (hasRole(user, "PACIENTE") || hasRole(user, "USER")) return "/dashboard/minha-carteira";
+  if (hasRole(user, "EMPRESA")) return "/dashboard/consultar-status";
+  return "/dashboard";
+}

@@ -1,5 +1,6 @@
 package tech.challenge.vaccination.system.presentation.dtos.user;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -10,6 +11,9 @@ public record UserResponseDTO(
         String name,
         String email,
         String login,
+        String cpf,
+        LocalDate birthDate,
+        String sex,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         List<RoleResponseDTO> roles

@@ -20,12 +20,14 @@ public class UserJpaMapper {
         jpaEntity.setEmail(user.getEmail().value());
         jpaEntity.setLogin(user.getLogin().value());
         jpaEntity.setPassword(user.getPassword().value());
+        jpaEntity.setCpf(user.getCpf());
+        jpaEntity.setBirthDate(user.getBirthDate());
+        jpaEntity.setSex(user.getSex());
         jpaEntity.setCreatedAt(user.getCreatedAt());
         jpaEntity.setUpdatedAt(user.getUpdatedAt());
 
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-            // Criar um novo HashSet para evitar UnsupportedOperationException
-            HashSet<tech.challenge.vaccination.system.infrastructure.persistence.entities.RoleJpaEntity> roleSet = 
+            HashSet<tech.challenge.vaccination.system.infrastructure.persistence.entities.RoleJpaEntity> roleSet =
                 user.getRoles().stream()
                     .map(RoleJpaMapper::toJpaEntity)
                     .collect(Collectors.toCollection(HashSet::new));
@@ -46,14 +48,15 @@ public class UserJpaMapper {
                     .forEach(rolesHashSet::add);
         }
 
-        // Removido mapeamento de userType
-
         return User.of(
                 jpaEntity.getId(),
                 jpaEntity.getName(),
                 jpaEntity.getEmail(),
                 jpaEntity.getLogin(),
                 jpaEntity.getPassword(),
+                jpaEntity.getCpf(),
+                jpaEntity.getBirthDate(),
+                jpaEntity.getSex(),
                 rolesHashSet,
                 jpaEntity.getCreatedAt(),
                 jpaEntity.getUpdatedAt()
