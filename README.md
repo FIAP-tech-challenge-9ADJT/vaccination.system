@@ -35,27 +35,41 @@ O frontend segue o padrao visual do **Design System do Governo Federal (DSGov)**
 
 ### Funcionalidades Implementadas
 
+**Autenticacao e Usuarios**
 - Autenticacao JWT com login e atualizacao de perfil
-- Cadastro publico de usuarios (role USER)
+- Cadastro publico de usuarios (role PACIENTE)
 - Painel administrativo com CRUD completo de usuarios (role ADMIN)
-- Dashboard com indicadores de vacinacao (dados de exemplo)
-- Listagem paginada de usuarios
-- Seed automatico de usuario administrador
-- Migrations automaticas de banco de dados com Flyway
+- Controle de acesso por roles: ADMIN, MEDICO, ENFERMEIRO, PACIENTE, EMPRESA
+- Seed automatico de usuario administrador e dois enfermeiros na primeira execucao
+
+**Vacinacao**
+- Registro de vacinacoes com lote, profissional responsavel e unidade de saude
+- Validacao automatica de intervalo minimo entre doses
+- Prevencao de doses duplicadas (constraint paciente + vacina + dose)
+- Consulta de historico vacinal completo por paciente (qualquer profissional de saude)
+- Consulta de doses anteriores por vacina especifica (paciente + vacina)
+- Carteira digital de vacinacao para o paciente
+- Alertas de vacinas pendentes e atrasadas
+
+**Consulta de Pacientes (profissionais)**
+- Busca de pacientes por CPF ou nome (busca parcial, case-insensitive)
+- Visualizacao do historico vacinal completo do paciente encontrado
+- Feedback preventivo no formulario de registro: exibe doses anteriores, alerta de intervalo e esquema vacinal completo
+
+**Gestao**
+- CRUD de vacinas com tipos, doses obrigatorias e intervalos
+- CRUD de unidades de saude com CNES
+- Campanhas de vacinacao com metas e acompanhamento de progresso
+- Dashboard com estatisticas de vacinacao em tempo real
+
+**Empresas**
+- Consulta de status vacinal de funcionarios (com consentimento do paciente)
+- Gestao de consentimentos pelo paciente
+
+**Infraestrutura**
+- Migrations automaticas de banco de dados com Flyway (8 migrations)
 - Documentacao interativa da API via Swagger/OpenAPI
 - Deploy completo com Docker Compose (backend + frontend + banco + phpMyAdmin)
-
-### Proposta do Hackathon
-
-O sistema foi projetado como base extensivel para um sistema nacional de vacinacao que incluira:
-
-- Cadastro de pacientes com CPF e dados demograficos
-- Registro de vacinas aplicadas com lote, fabricante e profissional responsavel
-- Historico completo de vacinacao por paciente
-- Carteira digital de vacinacao
-- Campanhas de vacinacao com metas e acompanhamento
-- Agendamento de doses
-- Relatorios de cobertura vacinal
 
 ---
 
@@ -132,14 +146,14 @@ O backend segue os principios de Clean Architecture com separacao clara entre ca
 backend/src/main/java/tech/challenge/vaccination/system/
 │
 ├── domain/                    # Camada de Dominio (regras de negocio)
-│   ├── entities/              #   User, Role
+│   ├── entities/              #   User, Role, Vaccine, VaccinationRecord, HealthUnit, Campaign
 │   ├── valueobjects/          #   Email, Login, Name, Password, UserId
 │   ├── repositories/          #   Interfaces de repositorios
 │   ├── usecases/              #   Interfaces e implementacoes de use cases
 │   └── exceptions/            #   Excecoes de dominio
 │
 ├── application/               # Camada de Aplicacao (orquestracao)
-│   ├── services/              #   UserApplicationService, AuthApplicationService
+│   ├── services/              #   UserApplication, Auth, Vaccination, Vaccine, Campaign, HealthUnit
 │   └── usecases/              #   Implementacoes de use cases
 │
 ├── infrastructure/            # Camada de Infraestrutura (detalhes tecnicos)
@@ -148,7 +162,7 @@ backend/src/main/java/tech/challenge/vaccination/system/
 │   └── security/              #   JWT, SecurityConfig, AccessTokenFilter, CORS
 │
 ├── presentation/              # Camada de Apresentacao (interface HTTP)
-│   ├── controllers/           #   AuthController, UserController, AdminController
+│   ├── controllers/           #   Auth, User, Admin, Patient, Vaccination, Vaccine, etc.
 │   ├── dtos/                  #   Request/Response DTOs
 │   └── mappers/               #   Conversao Entity <-> DTO
 │
@@ -169,28 +183,33 @@ HTTP Response ← DTO Mapper ← Domain Entity ← ← ← ← ← ← ← ← �
 frontend/src/
 │
 ├── app/                       # Rotas da aplicacao (App Router)
-│   ├── (auth)/                #   Grupo de rotas de autenticacao
-│   │   ├── login/             #     Tela de login
-│   │   └── cadastro/          #     Tela de cadastro
-│   └── dashboard/             #   Grupo de rotas protegidas
-│       ├── page.tsx           #     Dashboard principal
-│       └── usuarios/          #     CRUD de usuarios
+│   ├── (auth)/                #   Login e Cadastro
+│   └── dashboard/             #   Rotas protegidas
+│       ├── page.tsx           #     Dashboard (admin/profissional)
+│       ├── pacientes/         #     Busca e consulta de pacientes
+│       ├── vacinacoes/        #     Registro de vacinacoes
+│       ├── minha-carteira/    #     Carteira digital (paciente)
+│       ├── alertas/           #     Alertas de vacinacao (paciente)
+│       ├── usuarios/          #     CRUD de usuarios (admin)
+│       ├── vacinas/           #     CRUD de vacinas (admin)
+│       ├── unidades/          #     CRUD de unidades (admin)
+│       ├── campanhas/         #     Gestao de campanhas (admin)
+│       └── consultar-status/  #     Status vacinal (empresa)
 │
 ├── components/                # Componentes reutilizaveis
-│   ├── ui/                    #   Componentes Shadcn UI
-│   ├── app-sidebar.tsx        #   Sidebar de navegacao
+│   ├── ui/                    #   Componentes Shadcn UI (base-ui)
+│   ├── app-sidebar.tsx        #   Sidebar com menu por role
 │   ├── auth-guard.tsx         #   Protecao de rotas autenticadas
 │   ├── gov-header.tsx         #   Header padrao gov.br
 │   └── gov-footer.tsx         #   Footer institucional
 │
 ├── lib/                       # Utilitarios e configuracoes
-│   ├── api.ts                 #   Cliente HTTP para o backend
+│   ├── api.ts                 #   Cliente HTTP (48 endpoints mapeados)
 │   ├── validations.ts         #   Schemas Zod
 │   └── utils.ts               #   Utilitarios gerais
 │
 └── stores/                    # Gerenciamento de estado (Zustand)
-    ├── auth-store.ts          #   Estado de autenticacao
-    └── users-store.ts         #   Estado de usuarios
+    └── auth-store.ts          #   Estado de autenticacao + usuario
 ```
 
 ---
@@ -235,18 +254,18 @@ docker-compose up -d --build
 | Frontend | http://localhost:3000 | Interface web da aplicacao |
 | Backend API | http://localhost:8080 | API REST |
 | Swagger UI | http://localhost:8080/swagger-ui/index.html | Documentacao interativa da API |
+| OpenAPI JSON | http://localhost:8080/v3/api-docs | Especificacao OpenAPI em JSON |
 | phpMyAdmin | http://localhost:8081 | Gerenciamento do banco de dados |
 
 ### 5. Login inicial
 
-Um usuario administrador e criado automaticamente na primeira execucao:
+Na primeira execucao, sao criados automaticamente 3 usuarios:
 
-| Campo | Valor |
-|---|---|
-| Login | `admin` |
-| Senha | `admin123` |
-| Email | `admin@vaccination.system` |
-| Role | `ADMIN` |
+| Nome | Login | Senha | Email | Role |
+|---|---|---|---|---|
+| Administrador | `admin` | `admin123` | admin@vaccination.system | ADMIN |
+| Carlos Souza | `enf.carlos` | `enf123` | carlos.souza@vaccination.system | ENFERMEIRO |
+| Ana Oliveira | `enf.ana` | `enf123` | ana.oliveira@vaccination.system | ENFERMEIRO |
 
 ---
 
@@ -286,111 +305,102 @@ O frontend estara disponivel em http://localhost:3000 e se conectara ao backend 
 
 ## Endpoints da API
 
+> Documentacao interativa completa disponivel em http://localhost:8080/swagger-ui/index.html
+
 ### Autenticacao
 
 | Metodo | Path | Auth | Descricao |
 |---|---|---|---|
 | `POST` | `/auth/login` | Publico | Login. Retorna token JWT |
-| `POST` | `/auth/update-profile` | JWT (USER, ADMIN) | Atualizar nome, email e/ou senha |
-
-**Exemplo - Login:**
-
-```bash
-curl -X POST http://localhost:8080/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"login": "admin", "password": "admin123"}'
-```
-
-**Resposta:**
-
-```json
-{
-  "accessToken": "eyJ0eXAiOiJKV1QiLCJhbGc..."
-}
-```
+| `POST` | `/auth/update-profile` | JWT | Atualizar nome, email e/ou senha |
 
 ### Usuarios
 
 | Metodo | Path | Auth | Descricao |
 |---|---|---|---|
-| `POST` | `/users` | Publico | Cadastrar novo usuario (role USER) |
-| `GET` | `/users/me` | JWT (USER, ADMIN) | Retorna perfil do usuario autenticado |
+| `POST` | `/users` | Publico | Cadastrar novo usuario (role PACIENTE) |
+| `GET` | `/users/me` | JWT | Retorna perfil do usuario autenticado |
 
-**Exemplo - Cadastrar usuario:**
-
-```bash
-curl -X POST http://localhost:8080/users \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Maria Silva",
-    "email": "maria@email.com",
-    "login": "maria_silva",
-    "password": "senha123"
-  }'
-```
-
-**Resposta (201 Created):**
-
-```json
-{
-  "id": 2,
-  "name": "Maria Silva",
-  "email": "maria@email.com",
-  "login": "maria_silva",
-  "createdAt": "2026-03-23T14:30:00",
-  "updatedAt": "2026-03-23T14:30:00",
-  "roles": [
-    { "id": 1, "name": "USER" }
-  ]
-}
-```
-
-### Administracao (requer role ADMIN)
+### Administracao
 
 | Metodo | Path | Auth | Descricao |
 |---|---|---|---|
-| `GET` | `/admin/users?page=0&size=10` | ADMIN | Listar todos os usuarios com paginacao |
+| `GET` | `/admin/users` | ADMIN | Listar usuarios com paginacao |
 | `GET` | `/admin/users/{id}` | ADMIN | Buscar usuario por ID |
-| `PUT` | `/admin/users/{id}` | ADMIN | Atualizar nome e email de um usuario |
+| `PUT` | `/admin/users/{id}` | ADMIN | Atualizar usuario |
 | `DELETE` | `/admin/users/{id}` | ADMIN | Excluir usuario |
 
-**Exemplo - Listar usuarios (com token):**
+### Pacientes
 
-```bash
-curl http://localhost:8080/admin/users?page=0&size=10 \
-  -H "Authorization: Bearer <TOKEN>"
-```
+| Metodo | Path | Auth | Descricao |
+|---|---|---|---|
+| `GET` | `/patients/search?q=` | ENFERMEIRO, MEDICO, ADMIN | Buscar pacientes por CPF ou nome |
+| `GET` | `/patients/me/vaccination-card` | PACIENTE | Carteira de vacinacao propria |
+| `GET` | `/patients/me/pending-vaccines` | PACIENTE | Vacinas pendentes |
+| `GET` | `/patients/me/alerts` | PACIENTE | Alertas de vacinacao |
+| `GET` | `/patients/{id}/vaccination-card` | ENFERMEIRO, MEDICO, ADMIN | Carteira de vacinacao do paciente |
+| `GET` | `/patients/{id}/vaccination-card/validate` | Publico | Validar carteira de vacinacao |
+| `POST` | `/patients/me/consents/{companyId}` | PACIENTE | Conceder consentimento a empresa |
+| `DELETE` | `/patients/me/consents/{companyId}` | PACIENTE | Revogar consentimento |
+| `GET` | `/patients/me/consents` | PACIENTE | Listar consentimentos ativos |
 
-**Resposta:**
+### Vacinacoes
 
-```json
-{
-  "content": [
-    {
-      "id": 1,
-      "name": "Administrador",
-      "email": "admin@vaccination.system",
-      "login": "admin",
-      "createdAt": "2026-03-23T14:00:00",
-      "updatedAt": "2026-03-23T14:00:00",
-      "roles": [{ "id": 2, "name": "ADMIN" }]
-    }
-  ],
-  "page": 0,
-  "size": 10,
-  "totalElements": 1,
-  "totalPages": 1
-}
-```
+| Metodo | Path | Auth | Descricao |
+|---|---|---|---|
+| `POST` | `/vaccinations` | ENFERMEIRO, MEDICO | Registrar vacinacao |
+| `PUT` | `/vaccinations/{id}` | MEDICO | Editar registro de vacinacao |
+| `GET` | `/vaccinations/{id}` | ENFERMEIRO, MEDICO, ADMIN | Buscar registro por ID |
+| `GET` | `/vaccinations` | ENFERMEIRO, MEDICO, ADMIN | Listar todos com paginacao |
+| `GET` | `/vaccinations/patient/{patientId}` | ENFERMEIRO, MEDICO, ADMIN | Historico do paciente |
+| `GET` | `/vaccinations/patient/{patientId}/vaccine/{vaccineId}` | ENFERMEIRO, MEDICO, ADMIN | Doses de vacina especifica |
 
-**Exemplo - Atualizar usuario:**
+### Vacinas
 
-```bash
-curl -X PUT http://localhost:8080/admin/users/2 \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <TOKEN>" \
-  -d '{"name": "Maria Santos", "email": "maria.santos@email.com"}'
-```
+| Metodo | Path | Auth | Descricao |
+|---|---|---|---|
+| `GET` | `/vaccines` | JWT | Listar vacinas com paginacao |
+| `GET` | `/vaccines/active` | JWT | Listar vacinas ativas |
+| `GET` | `/vaccines/{id}` | JWT | Buscar vacina por ID |
+| `POST` | `/vaccines` | ADMIN | Criar vacina |
+| `PUT` | `/vaccines/{id}` | ADMIN | Atualizar vacina |
+| `DELETE` | `/vaccines/{id}` | ADMIN | Excluir vacina |
+
+### Unidades de Saude
+
+| Metodo | Path | Auth | Descricao |
+|---|---|---|---|
+| `GET` | `/health-units` | JWT | Listar unidades com paginacao |
+| `GET` | `/health-units/active` | JWT | Listar unidades ativas |
+| `GET` | `/health-units/{id}` | JWT | Buscar unidade por ID |
+| `POST` | `/health-units` | ADMIN | Criar unidade |
+| `PUT` | `/health-units/{id}` | ADMIN | Atualizar unidade |
+| `DELETE` | `/health-units/{id}` | ADMIN | Excluir unidade |
+
+### Campanhas
+
+| Metodo | Path | Auth | Descricao |
+|---|---|---|---|
+| `GET` | `/campaigns` | JWT | Listar campanhas com paginacao |
+| `GET` | `/campaigns/active` | JWT | Listar campanhas ativas |
+| `GET` | `/campaigns/{id}` | JWT | Buscar campanha por ID |
+| `POST` | `/campaigns` | ADMIN | Criar campanha |
+| `PUT` | `/campaigns/{id}` | ADMIN | Atualizar campanha |
+| `DELETE` | `/campaigns/{id}` | ADMIN | Excluir campanha |
+
+### Empresa
+
+| Metodo | Path | Auth | Descricao |
+|---|---|---|---|
+| `GET` | `/company/patients/{id}/status` | EMPRESA | Consultar status vacinal (requer consentimento) |
+
+### Dashboard
+
+| Metodo | Path | Auth | Descricao |
+|---|---|---|---|
+| `GET` | `/dashboard/stats` | ENFERMEIRO, MEDICO, ADMIN | Estatisticas gerais |
+| `GET` | `/dashboard/recent-vaccinations` | ENFERMEIRO, MEDICO, ADMIN | Vacinacoes recentes |
+| `GET` | `/dashboard/active-campaigns` | ENFERMEIRO, MEDICO, ADMIN | Campanhas ativas |
 
 ---
 
@@ -412,8 +422,11 @@ O sistema utiliza **JWT (JSON Web Tokens)** para autenticacao stateless.
 
 | Role | Permissoes |
 |---|---|
-| `USER` | Visualizar proprio perfil, atualizar perfil |
-| `ADMIN` | Todas as permissoes de USER + CRUD completo de usuarios |
+| `PACIENTE` | Visualizar carteira de vacinacao, alertas, vacinas pendentes, gerenciar consentimentos |
+| `ENFERMEIRO` | Registrar vacinacoes, consultar pacientes, visualizar historico vacinal |
+| `MEDICO` | Tudo do enfermeiro + editar registros de vacinacao |
+| `ADMIN` | CRUD de usuarios, vacinas, unidades de saude, campanhas + dashboard |
+| `EMPRESA` | Consultar status vacinal de pacientes (com consentimento) |
 
 ### Seguranca
 
@@ -429,20 +442,47 @@ O sistema utiliza **JWT (JSON Web Tokens)** para autenticacao stateless.
 ### Diagrama ER
 
 ```
-┌──────────────────────┐       ┌──────────────────┐
-│        users         │       │     tb_role      │
-├──────────────────────┤       ├──────────────────┤
-│ id         BIGINT PK │◄──┐   │ id    BIGINT PK  │
-│ name       VARCHAR   │   │   │ name  VARCHAR UQ  │
-│ email      VARCHAR   │   │   │  (USER, ADMIN)   │
-│ login      VARCHAR   │   │   └────────┬─────────┘
-│ password   VARCHAR   │   │            │
-│ created_at DATETIME  │   │   ┌────────┴─────────┐
-│ updated_at DATETIME  │   │   │  tb_user_role    │
-└──────────────────────┘   │   ├──────────────────┤
-                           ├───│ user_id BIGINT FK│
-                               │ role_id BIGINT FK│
-                               └──────────────────┘
+┌───────────────────┐     ┌──────────────────┐     ┌───────────────────┐
+│      users        │     │    tb_role        │     │     vaccines      │
+├───────────────────┤     ├──────────────────┤     ├───────────────────┤
+│ id            PK  │◄─┐  │ id           PK  │     │ id            PK  │
+│ name              │  │  │ name         UQ  │     │ name              │
+│ email             │  │  └────────┬─────────┘     │ manufacturer      │
+│ login             │  │           │               │ type              │
+│ password          │  │  ┌────────┴─────────┐     │ required_doses    │
+│ cpf           UQ  │  │  │  tb_user_role    │     │ dose_interval_days│
+│ birth_date        │  ├──│ user_id      FK  │     │ active            │
+│ sex               │  │  │ role_id      FK  │     └────────┬──────────┘
+└──────┬────────────┘  │  └──────────────────┘              │
+       │               │                                    │
+       │  ┌────────────┴──────────────────┐                 │
+       │  │    vaccination_records        │                 │
+       │  ├───────────────────────────────┤                 │
+       │  │ id                        PK  │                 │
+       ├──│ patient_id                FK  │◄────────────────┘
+       ├──│ professional_id           FK  │  (vaccine_id FK)
+       │  │ vaccine_id                FK  │
+       │  │ health_unit_id            FK  ├──┐
+       │  │ dose_number                   │  │  ┌──────────────────┐
+       │  │ lot_number                    │  │  │  health_units    │
+       │  │ application_date              │  │  ├──────────────────┤
+       │  │ notes                         │  └─►│ id           PK  │
+       │  │ UQ(patient, vaccine, dose)    │     │ name             │
+       │  └───────────────────────────────┘     │ cnes             │
+       │                                        │ address          │
+       │  ┌───────────────────────────────┐     │ active           │
+       │  │    patient_consents           │     └──────────────────┘
+       │  ├───────────────────────────────┤
+       ├──│ patient_id                FK  │     ┌──────────────────┐
+       └──│ company_id                FK  │     │    campaigns     │
+          │ granted                       │     ├──────────────────┤
+          │ granted_at                    │     │ id           PK  │
+          │ revoked_at                    │     │ name             │
+          └───────────────────────────────┘     │ vaccine_id   FK  │
+                                                │ dose_goal        │
+                                                │ start/end_date   │
+                                                │ active           │
+                                                └──────────────────┘
 ```
 
 ### Migrations (Flyway)
@@ -451,45 +491,64 @@ O sistema utiliza **JWT (JSON Web Tokens)** para autenticacao stateless.
 |---|---|---|
 | V1 | `V1__Create_users_table.sql` | Tabela de usuarios |
 | V2 | `V2__Create_roles_table.sql` | Tabelas de roles e user_role + seed USER/ADMIN |
+| V3 | `V3__Add_patient_fields_and_roles.sql` | Roles PACIENTE, ENFERMEIRO, MEDICO, EMPRESA + campos CPF, birth_date, sex |
+| V4 | `V4__Create_vaccines_table.sql` | Tabela de vacinas |
+| V5 | `V5__Create_health_units_table.sql` | Tabela de unidades de saude |
+| V6 | `V6__Create_vaccination_records_table.sql` | Registros de vacinacao com constraint de unicidade |
+| V7 | `V7__Create_campaigns_table.sql` | Campanhas de vacinacao |
+| V8 | `V8__Create_patient_consents_table.sql` | Consentimentos paciente-empresa |
 
 ### Seed Automatico
 
-Ao iniciar a aplicacao, o `DataSeeder` verifica se o usuario `admin` existe. Caso nao exista, cria automaticamente:
+Ao iniciar a aplicacao, o `DataSeeder` verifica se os usuarios iniciais existem. Caso nao existam, cria automaticamente:
 
-```
-Login: admin
-Senha: admin123
-Email: admin@vaccination.system
-Role:  ADMIN
-```
+| Nome | Login | Senha | Email | Role |
+|---|---|---|---|---|
+| Administrador | `admin` | `admin123` | admin@vaccination.system | ADMIN |
+| Carlos Souza | `enf.carlos` | `enf123` | carlos.souza@vaccination.system | ENFERMEIRO |
+| Ana Oliveira | `enf.ana` | `enf123` | ana.oliveira@vaccination.system | ENFERMEIRO |
 
 ---
 
 ## Telas do Frontend
 
-### Login (`/login`)
+### Publicas
 
-Tela de autenticacao com validacao de formulario via Zod. Header e footer seguem o padrao visual gov.br com barra amarela superior.
+| Rota | Descricao |
+|---|---|
+| `/login` | Autenticacao com validacao via Zod. Header/footer no padrao gov.br |
+| `/cadastro` | Formulario de criacao de conta com validacao completa |
+| `/validar/{id}` | Validacao publica de carteira de vacinacao via QR Code |
 
-### Cadastro (`/cadastro`)
+### Paciente
 
-Formulario de criacao de conta com validacao de nome, email, login, senha e confirmacao de senha.
+| Rota | Descricao |
+|---|---|
+| `/dashboard/minha-carteira` | Carteira digital de vacinacao com todas as doses recebidas |
+| `/dashboard/alertas` | Alertas de vacinas pendentes e atrasadas |
 
-### Dashboard (`/dashboard`)
+### Profissionais (Enfermeiro / Medico)
 
-Painel com indicadores de exemplo:
-- Pacientes cadastrados, vacinas aplicadas, cobertura vacinal, agendamentos
-- Lista de vacinacoes recentes com status
-- Campanhas de vacinacao em andamento com barra de progresso
+| Rota | Descricao |
+|---|---|
+| `/dashboard` | Painel com estatisticas, vacinacoes recentes e campanhas ativas |
+| `/dashboard/pacientes` | **Busca de pacientes** por CPF ou nome com visualizacao do historico vacinal completo |
+| `/dashboard/vacinacoes` | Registro de vacinacoes com **exibicao de doses anteriores**, alerta de intervalo minimo e auto-preenchimento do numero da dose |
 
-### Usuarios (`/dashboard/usuarios`)
+### Administrador
 
-CRUD completo de usuarios com:
-- Listagem paginada em tabela
-- Botao "Novo Usuario" abrindo dialog de cadastro
-- Botao de edicao (lapiz) abrindo dialog de edicao de nome/email
-- Botao de exclusao com confirmacao via AlertDialog
-- Badges coloridos por role (ADMIN em azul, USER em cinza)
+| Rota | Descricao |
+|---|---|
+| `/dashboard/usuarios` | CRUD completo de usuarios com paginacao |
+| `/dashboard/vacinas` | CRUD de vacinas (tipos, doses, intervalos) |
+| `/dashboard/unidades` | CRUD de unidades de saude |
+| `/dashboard/campanhas` | Gestao de campanhas de vacinacao com progresso |
+
+### Empresa
+
+| Rota | Descricao |
+|---|---|
+| `/dashboard/consultar-status` | Consulta de status vacinal de funcionarios (com consentimento) |
 
 ---
 

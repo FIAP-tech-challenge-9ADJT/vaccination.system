@@ -252,6 +252,8 @@ export const api = {
       request<VaccinationRecordResponse>(`/vaccinations/${id}`, { token }),
     findByPatient: (token: string, patientId: number) =>
       request<VaccinationRecordResponse[]>(`/vaccinations/patient/${patientId}`, { token }),
+    findByPatientAndVaccine: (token: string, patientId: number, vaccineId: number) =>
+      request<VaccinationRecordResponse[]>(`/vaccinations/patient/${patientId}/vaccine/${vaccineId}`, { token }),
     create: (token: string, data: Record<string, unknown>) =>
       request<VaccinationRecordResponse>("/vaccinations", {
         method: "POST",
@@ -290,6 +292,12 @@ export const api = {
   },
 
   patient: {
+    search: (token: string, query: string) =>
+      request<Array<{ id: number; name: string; cpf: string; birthDate: string; sex: string }>>(
+        `/patients/search?q=${encodeURIComponent(query)}`, { token }
+      ),
+    vaccinationCard: (token: string, patientId: number) =>
+      request<VaccinationRecordResponse[]>(`/patients/${patientId}/vaccination-card`, { token }),
     myVaccinationCard: (token: string) =>
       request<VaccinationRecordResponse[]>("/patients/me/vaccination-card", { token }),
     myPendingVaccines: (token: string) =>

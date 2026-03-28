@@ -13,6 +13,7 @@ import {
   CreditCard,
   Bell,
   Building,
+  UserSearch,
 } from "lucide-react";
 import {
   Sidebar,
@@ -58,6 +59,7 @@ export function AppSidebar() {
 
   // Professional menu
   if (isProfessional || isAdmin) {
+    menuItems.push({ title: "Consultar Pacientes", href: "/dashboard/pacientes", icon: UserSearch });
     menuItems.push({ title: "Vacinações", href: "/dashboard/vacinacoes", icon: ClipboardList });
   }
 
