@@ -77,6 +77,7 @@ public class SecurityConfig {
                 req.requestMatchers(HttpMethod.GET, "/vaccinations/**").hasAnyRole("ADMIN", "ENFERMEIRO", "MEDICO");
 
                 // PATIENT - carteira de vacinação (USER tratado como PACIENTE para retrocompatibilidade)
+                req.requestMatchers(HttpMethod.GET, "/patients/search").hasAnyRole("ENFERMEIRO", "MEDICO", "ADMIN");
                 req.requestMatchers("/patients/me/**").hasAnyRole("PACIENTE", "USER");
                 req.requestMatchers(HttpMethod.GET, "/patients/*/vaccination-card").hasAnyRole("ENFERMEIRO", "MEDICO", "ADMIN");
                 req.requestMatchers("/patients/*/consents/**").hasAnyRole("PACIENTE", "USER");

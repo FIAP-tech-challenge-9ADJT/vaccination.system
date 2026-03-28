@@ -21,3 +21,9 @@ Thumbs.db
 
 # Tests
 e2e/
+e2e-tests.mjs
+
+# Root node (e2e deps)
+node_modules/
+package.json
+package-lock.json

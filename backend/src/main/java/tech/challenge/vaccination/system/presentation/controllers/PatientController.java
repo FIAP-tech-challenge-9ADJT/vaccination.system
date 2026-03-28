@@ -14,6 +14,8 @@ import tech.challenge.vaccination.system.infrastructure.persistence.entities.Pat
 import tech.challenge.vaccination.system.presentation.dtos.vaccination.VaccinationRecordResponseDTO;
 import tech.challenge.vaccination.system.presentation.mappers.VaccinationRecordDtoMapper;
 
+import org.springframework.data.domain.PageRequest;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,6 +37,45 @@ public class PatientController {
         this.vaccineService = vaccineService;
         this.consentRepository = consentRepository;
         this.userJpaRepository = userJpaRepository;
+    }
+
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ENFERMEIRO', 'MEDICO', 'ADMIN')")
+    public ResponseEntity<?> searchPatients(@RequestParam String q) {
+        String normalized = q.replaceAll("[^\\d\\p{L} ]", "").trim();
+        if (normalized.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        // If query is all digits, search by CPF
+        String digitsOnly = q.replaceAll("\\D", "");
+        if (digitsOnly.length() >= 11) {
+            var patient = userJpaRepository.findPatientByCpf(digitsOnly);
+            if (patient.isPresent()) {
+                var u = patient.get();
+                return ResponseEntity.ok(List.of(Map.of(
+                    "id", u.getId(),
+                    "name", u.getName(),
+                    "cpf", u.getCpf() != null ? u.getCpf() : "",
+                    "birthDate", u.getBirthDate() != null ? u.getBirthDate().toString() : "",
+                    "sex", u.getSex() != null ? u.getSex() : ""
+                )));
+            }
+            return ResponseEntity.ok(List.of());
+        }
+
+        // Otherwise search by name
+        var patients = userJpaRepository.searchPatientsByName(normalized, PageRequest.of(0, 20));
+        var result = patients.stream().map(u -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", u.getId());
+            map.put("name", u.getName());
+            map.put("cpf", u.getCpf() != null ? u.getCpf() : "");
+            map.put("birthDate", u.getBirthDate() != null ? u.getBirthDate().toString() : "");
+            map.put("sex", u.getSex() != null ? u.getSex() : "");
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/me/vaccination-card")

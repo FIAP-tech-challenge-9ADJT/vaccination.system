@@ -76,6 +76,10 @@ public class VaccinationApplicationService {
         return vaccinationRecordRepository.findByPatientId(patientId);
     }
 
+    public List<VaccinationRecord> findByPatientIdAndVaccineId(Long patientId, Long vaccineId) {
+        return vaccinationRecordRepository.findByPatientIdAndVaccineId(patientId, vaccineId);
+    }
+
     public List<VaccinationRecord> findAll(int page, int size) {
         return vaccinationRecordRepository.findAll(page, size);
     }

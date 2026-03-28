@@ -74,4 +74,12 @@ public class VaccinationController {
                 .map(VaccinationRecordDtoMapper::toResponseDto).toList();
         return ResponseEntity.ok(records);
     }
+
+    @GetMapping("/patient/{patientId}/vaccine/{vaccineId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENFERMEIRO', 'MEDICO')")
+    public ResponseEntity<?> findByPatientAndVaccine(@PathVariable Long patientId, @PathVariable Long vaccineId) {
+        var records = vaccinationService.findByPatientIdAndVaccineId(patientId, vaccineId).stream()
+                .map(VaccinationRecordDtoMapper::toResponseDto).toList();
+        return ResponseEntity.ok(records);
+    }
 }
